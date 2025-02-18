@@ -13,6 +13,8 @@ import sys
 
 import numpy as np
 import scipy
+from scipy import optimize
+from scipy import stats
 import scipy.sparse.linalg
 import scipy.stats
 
@@ -82,6 +84,20 @@ except ImportError:  # SciPy < 1.8
 
 def _object_dtype_isnan(X):
     return X != X
+
+
+#TODO:  remove this when minimum version of scipy >= 1.9.0
+def _yeojohnson_lambda( _neg_log_likelihood, x):
+
+    x = x[~np.isnan(x)]
+    scipy_version = parse_version(scipy.__version__)
+    min_scipy_version = "1.9.0"
+    if scipy_version < parse_version(min_scipy_version):
+        # choosing bracket -2, 2 like for boxcox
+        return optimize.brent(_neg_log_likelihood, brack=(-2, 2))
+
+    _, lmbda = stats.yeojohnson(x, lmbda=None)
+    return lmbda
 
 
 # Rename the `method` kwarg to `interpolation` for NumPy < 1.22, because
