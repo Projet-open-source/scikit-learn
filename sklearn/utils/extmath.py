@@ -559,7 +559,55 @@ def randomized_svd(
         return Vt[:n_components, :].T, s[:n_components], U[:, :n_components].T
     else:
         return U[:, :n_components], s[:n_components], Vt[:n_components, :]
+    
 
+
+
+
+def eigen_decomposition_one_pass(
+        A, 
+        n_components,
+        *, 
+        n_oversamples=10,
+        n_iter="auto",
+        power_iteration_normalizer="auto",
+        random_state=None
+):
+
+
+    xp, is_array_api_compliant = get_namespace(A)
+    random_state = check_random_state(random_state)
+    n_total=n_components + n_oversamples
+
+
+    Omega = xp.asarray(random_state.normal(size=(A.shape[1], n_total)))
+
+    Y = A @ Omega
+    if n_iter == "auto":
+        # Checks if the number of iterations is explicitly specified
+        # Adjust n_iter. 7 was found a good compromise for PCA. See #5299
+        n_iter = 7 if n_components < 0.1 * min(A.shape) else 4
+    Q = randomized_range_finder(
+        Y, 
+        size=n_total,
+        n_iter=n_iter,
+        power_iteration_normalizer=power_iteration_normalizer,
+        random_state=random_state
+        )
+    
+    Q_H = Q.conj().T
+
+    if is_array_api_compliant:
+        Bapprox_1 = Q_H @ Y @ xp.linalg.pinv(Q_H @ Omega)
+        Bapprox = (Bapprox_1 + Bapprox_1.conj().T)/2
+        S, V = xp.linalg.eigh(Bapprox)
+    else:
+        Bapprox_1 = Q_H @ Y @ linalg.pinv(Q_H @ Omega)
+        Bapprox = (Bapprox_1 + Bapprox_1.conj().T)/2
+        S, V = linalg.eigh(Bapprox)
+    n=S.shape[0]
+    U = Q @ V
+    return S[n-n_components:],U[:, n-n_components:]
 
 def _randomized_eigsh(
     M,
@@ -682,7 +730,14 @@ def _randomized_eigsh(
     """
     if selection == "value":  # pragma: no cover
         # to do : an algorithm can be found in the Halko et al reference
-        raise NotImplementedError()
+        eigvals, eigvecs=eigen_decomposition_one_pass(
+            M,
+            n_components=n_components,
+            n_oversamples=n_oversamples,
+            n_iter=n_iter,
+            power_iteration_normalizer=power_iteration_normalizer,
+            random_state=random_state
+        )
 
     elif selection == "module":
         # Note: no need for deterministic U and Vt (flip_sign=True),

@@ -187,9 +187,14 @@ def test_randomized_eigsh(dtype):
     # eigenvectors
     assert eigvecs.shape == (4, 2)
 
-    # with 'value' selection method, the negative eigenvalue does not show up
-    with pytest.raises(NotImplementedError):
-        _randomized_eigsh(X, n_components=2, selection="value")
+    eigvals_ran_value,eigvecs_ran_value=_randomized_eigsh(X, n_components=2,selection="value")
+    # eigenvalues with selection='value'
+    assert eigvals_ran_value.shape==(2,)
+    assert_array_almost_equal(eigvals_ran_value,[1.0, 3.0])
+    # eigenvectors with selection='value'
+    assert eigvecs_ran_value.shape==(4,2)
+
+
 
 
 @pytest.mark.parametrize("k", (10, 50, 100, 199, 200))
@@ -262,6 +267,41 @@ def test_randomized_eigsh_compared_to_others(k):
         eigvecs_arpack = eigvecs_arpack[:, indices]
         eigvecs_arpack, _ = svd_flip(eigvecs_arpack, dummy_vecs)
         assert_array_almost_equal(eigvecs_arpack, eigvecs_lapack, decimal=8)
+
+
+@pytest.mark.parametrize("n_features",(6,7,10,15))
+@pytest.mark.parametrize("k", (2, 3, 4))
+def test_randomized_eigsh_value_compared_to_others(k,n_features):
+    """Check that `_randomized_eigsh(value)` is similar to other `eigsh`
+
+    Tests that for a random PSD matrix, `_randomized_eigsh(value)` provides results
+    comparable to LAPACK (scipy.linalg.eigh) and ARPACK
+    (scipy.sparse.linalg.eigsh).    
+    """
+    # make a random PSD matrix
+    X = make_sparse_spd_matrix(n_features, random_state=0)
+
+    # compare two versions of randomized
+    # rough and fast
+    eigvals, eigvecs = _randomized_eigsh(
+        X, n_components=k, selection="value", n_iter=25, random_state=0
+    )
+    # more accurate but slow (TODO find realistic settings here)
+ 
+    # with LAPACK
+    eigvals_lapack, eigvecs_lapack = eigh(
+        X, subset_by_index=(n_features - k, n_features - 1)
+    )
+
+    # - eigenvalues comparison
+    assert eigvals.shape == (k,)
+    # comparison precision
+    assert_array_almost_equal(eigvals, eigvals_lapack, decimal=6)
+
+    # -- eigenvectors comparison
+    assert eigvecs_lapack.shape == (n_features, k)
+
+
 
 
 @pytest.mark.parametrize(
