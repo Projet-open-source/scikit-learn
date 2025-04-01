@@ -561,28 +561,23 @@ def randomized_svd(
         return U[:, :n_components], s[:n_components], Vt[:n_components, :]
     
 
-
-
-
 def eigen_decomposition_one_pass(
-        A, 
-        n_components,
-        *, 
-        n_oversamples=10,
-        n_iter="auto",
-        power_iteration_normalizer="auto",
-        random_state=None
+    A, 
+    n_components,
+    *, 
+    n_oversamples=10,
+    n_iter="auto",
+    power_iteration_normalizer="auto",
+    random_state=None
 ):
-
 
     xp, is_array_api_compliant = get_namespace(A)
     random_state = check_random_state(random_state)
     n_total=n_components + n_oversamples
 
-
     Omega = xp.asarray(random_state.normal(size=(A.shape[1], n_total)))
-
-    Y = A @ Omega
+    
+    Y  = A @ Omega
     if n_iter == "auto":
         # Checks if the number of iterations is explicitly specified
         # Adjust n_iter. 7 was found a good compromise for PCA. See #5299
@@ -605,6 +600,7 @@ def eigen_decomposition_one_pass(
         Bapprox_1 = Q_H @ Y @ linalg.pinv(Q_H @ Omega)
         Bapprox = (Bapprox_1 + Bapprox_1.conj().T)/2
         S, V = linalg.eigh(Bapprox)
+    
     n=S.shape[0]
     U = Q @ V
     return S[n-n_components:],U[:, n-n_components:]
@@ -729,7 +725,7 @@ def _randomized_eigsh(
       Halko, et al. (2009)
     """
     if selection == "value":  # pragma: no cover
-        # to do : an algorithm can be found in the Halko et al reference
+        # Call Halko et al 5.6 randomized eigs solver
         eigvals, eigvecs=eigen_decomposition_one_pass(
             M,
             n_components=n_components,
