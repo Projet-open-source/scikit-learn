@@ -559,7 +559,6 @@ def randomized_svd(
         return Vt[:n_components, :].T, s[:n_components], U[:, :n_components].T
     else:
         return U[:, :n_components], s[:n_components], Vt[:n_components, :]
-    
 
 def eigen_decomposition_one_pass(
     A, 
