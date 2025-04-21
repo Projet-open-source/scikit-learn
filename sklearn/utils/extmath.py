@@ -572,7 +572,6 @@ def eigen_decomposition_one_pass(
     xp, is_array_api_compliant = get_namespace(A)
     random_state = check_random_state(random_state)
     n_total=n_components + n_oversamples
-
     Omega = xp.asarray(random_state.normal(size=(A.shape[1], n_total)))
     
     Y  = A @ Omega
