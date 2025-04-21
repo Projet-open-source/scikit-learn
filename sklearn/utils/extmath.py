@@ -569,7 +569,6 @@ def eigen_decomposition_one_pass(
     power_iteration_normalizer="auto",
     random_state=None
 ):
-
     xp, is_array_api_compliant = get_namespace(A)
     random_state = check_random_state(random_state)
     n_total=n_components + n_oversamples
